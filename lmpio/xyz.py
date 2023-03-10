@@ -26,16 +26,18 @@ except ModuleNotFoundError:
 XYZ_NPY_EXT = '_xyz.npy'
 
 def load_xyz(filename: str,savenpy=True,loadnpy=True) -> dict:
-    fnpy = filename[:-4]+XYZ_NPY_EXT
-    if os.path.isfile(fnpy) and loadnpy:
-        xyz          = dict()
-        print(f"loading positions from '{fnpy}'")
-        xyz['pos']   = np.load(fnpy)
-        xyz['types'] = read_xyz_atomtypes(filename)
-    else:
-        xyz = read_xyz(filename)
-        if savenpy:
-            _save_xyz_binary(fnpy,xyz['pos'])
+    if not os.path.isfile(filename):
+        raise FileNotFoundError( f"No such file or directory: '{filename}'" )
+    fnpy = os.path.splitext(filename)[0]+XYZ_NPY_EXT
+    if os.path.isfile(fnpy) and loadnpy and os.path.getmtime(fnpy) >= os.path.getmtime(filename):
+            xyz          = dict()
+            print(f"loading positions from '{fnpy}'")
+            xyz['pos']   = np.load(fnpy)
+            xyz['types'] = read_xyz_atomtypes(filename)
+            return xyz
+    xyz = read_xyz(filename)
+    if savenpy:
+        _save_xyz_binary(fnpy,xyz['pos'])
     return xyz
 
 def load_pos_of_type(filename: str, selected_types: List[str], savenpy=True,loadnpy=True) -> np.ndarray:
@@ -111,7 +113,7 @@ def write_xyz(outfn: str,data: dict,add_extension=True) -> None:
                 f.write('%s %.4f %.4f %.4f\n'%(types[i],snap[i,0],snap[i,1],snap[i,2]))
     
 def _save_xyz_binary(outname: str,data: np.ndarray) -> None:
-    if outname[-4:] == '.npy':
+    if os.path.splitext(outname)[-1] == '.npy':
         outn = outname
     else:
         outn = outname + '.npy'
