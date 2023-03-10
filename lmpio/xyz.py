@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 import os,sys
 from typing import List
 
@@ -11,26 +13,20 @@ except ModuleNotFoundError:
 ########################################################
     
     
-    specs,snapshots = load_xyz(filename)
-    specs,snapshots = read_xyz(filename)
+    specs = load_xyz(filename)
+    specs = read_xyz(filename)
     
         readxyz always reads the xyz file while loadxyz accesses the 
         binary if it exists and creates it if it doesn't such that access
         will be accelerated next time.
-        
-On Execution: 
-    Read/readxyz.py filename 
-        
-        Reads state file, prints specs in terminal and creates trajectory
-        binary file.
-        
+            
 ########################################################
 """
 
-XYZ_NPY_EXT = '_xyz'
+XYZ_NPY_EXT = '_xyz.npy'
 
 def load_xyz(filename: str,savenpy=True,loadnpy=True) -> dict:
-    fnpy = filename[:-4]+XYZ_NPY_EXT+'.npy'
+    fnpy = filename[:-4]+XYZ_NPY_EXT
     if os.path.isfile(fnpy) and loadnpy:
         xyz          = dict()
         print(f"loading positions from '{fnpy}'")
@@ -55,7 +51,6 @@ def read_xyz(filename: str) -> np.ndarray:
     print(f"reading '{filename}'")
     data = list()
     with open(filename) as f:
-        # F = file_read(filename)
         line = f.readline()
         while line!='':
             ll = _linelist(line)
@@ -68,7 +63,6 @@ def read_xyz(filename: str) -> np.ndarray:
                 data.append(snapshot)
             line = f.readline()
     data = np.array(data)
-    
     xyz = dict()
     xyz['pos']   = data
     xyz['types'] = read_xyz_atomtypes(filename)
@@ -76,7 +70,6 @@ def read_xyz(filename: str) -> np.ndarray:
     
 def read_xyz_atomtypes(filename: str) -> List:
     data = list()
-    # F = file_read(filename)
     with open(filename) as f:
         line = f.readline()
         num = 0
@@ -126,19 +119,11 @@ def _save_xyz_binary(outname: str,data: np.ndarray) -> None:
 
 
 if __name__ == "__main__":
-    
     if len(sys.argv) < 3:
         print("usage: python %s fin fout"%sys.argv[0])
         sys.exit(0)
     fin  = sys.argv[1]
     fout = sys.argv[2]
     xyz  = load_xyz(fin)
-    # ~ fnpy = fin[:-4]+XYZ_NPY_EXT+'.npy'
-    # ~ _save_xyz_binary(fnpy,xyz)
-    
     types = read_xyz_atomtypes(fin)
     print(f'number of atoms = {len(types)}')
-    
-    # ~ print(xyz.keys())
-    # ~ write_xyz(fout,xyz)
-    
