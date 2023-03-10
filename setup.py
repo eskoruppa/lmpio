@@ -13,5 +13,5 @@ setup(name='lmpio',
       },
       install_requires=[
           'numpy>=1.13.3',
-      ],
-      zip_safe=False) 
+      ]
+      ) 
