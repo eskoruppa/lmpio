@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='lmpio',
-      version='0.0.1',
+      version='0.0.2',
       description='A module to read and write LAMMPS input and output files',
       url='https://github.com/eskoruppa/lmpio',
       author='Enrico Skoruppa',
