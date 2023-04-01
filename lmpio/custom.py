@@ -80,6 +80,8 @@ def customdata_splitargs(specs: dict,remove_data=True) -> dict:
             specs['velocity'] = data[:,:,[args.index(d) for d in ['vx','vy','vz']]]
             continue
         specs[arg] = data[:,:,args.index(arg)]
+        if arg == 'id':
+            specs[arg] = specs[arg].astype(np.int)
     if remove_data:
         del specs['data']
 
@@ -112,6 +114,126 @@ def _save_custom_binary(outname: str,data: np.ndarray) -> None:
     if os.path.splitext(outname)[-1] == '.npy':
         outname += '.npy'
     np.save(outname,data)    
+
+
+def write_custom(outfn: str, data: dict, extension='custom', append=False) -> None:
+    """
+    Writes configuration to custom file
+    
+    Parameters
+    ----------
+    outfn : string 
+        name of custom file
+    
+    """
+    # handle extension
+    extension = extension.lower()
+    if extension[0] != '.':
+        extension = '.' + extension
+    if extension not in outfn.lower():
+        outfn += extension
+
+    # select data entries
+    datalists = list()
+    for arg in data['args']:
+        if arg == 'x' and 'x' not in data.keys():
+            if 'position' not in data.keys():
+                raise KeyError(f'Neither x nore position was provided in data dictionary.')
+            dat = [np.array(psnap)[:,0] for psnap in data['position']]
+            datalists.append(dat)
+            continue
+        if arg == 'y' and 'y' not in data.keys():
+            if 'position' not in data.keys():
+                raise KeyError(f'Neither y nore position was provided in data dictionary.')
+            dat = [np.array(psnap)[:,1] for psnap in data['position']]
+            datalists.append(dat)
+            continue
+        if arg == 'z' and 'z' not in data.keys():
+            if 'position' not in data.keys():
+                raise KeyError(f'Neither z nore position was provided in data dictionary.')
+            dat = [np.array(psnap)[:,2] for psnap in data['position']]
+            datalists.append(dat)
+            continue
+        if arg == 'vx' and 'vx' not in data.keys():
+            if 'velocity' not in data.keys():
+                raise KeyError(f'Neither vx nore velocity was provided in data dictionary.')
+            dat = [np.array(vsnap)[:,0] for vsnap in data['velocity']]
+            datalists.append(dat)
+            continue
+        if arg == 'vy' and 'vy' not in data.keys():
+            if 'velocity' not in data.keys():
+                raise KeyError(f'Neither vy nore velocity was provided in data dictionary.')
+            dat = [np.array(vsnap)[:,1] for vsnap in data['velocity']]
+            datalists.append(dat)
+            continue
+        if arg == 'vz' and 'vz' not in data.keys():
+            if 'velocity' not in data.keys():
+                raise KeyError(f'Neither vz nore velocity was provided in data dictionary.')
+            dat = [np.array(vsnap)[:,2] for vsnap in data['velocity']]
+            datalists.append(dat)
+            continue
+        if arg not in data.keys():
+            raise KeyError(f'The key {arg} was not provided in data dictionary.')  
+        datalists.append(data[arg])
+
+    # print(len(datalists))
+    # print(len(datalists[0]))
+    # print(len(datalists[0][0]))
+    # sys.exit()
+
+    # set boundary string
+    if 'boundary' not in data.keys():
+        boundarystr == 'ITEM: BOX BOUNDS ff ff ff\n'
+    else:
+        boundarystr = f"ITEM: BOX BOUNDS {data['boundary'][0]} {data['boundary'][1]} {data['boundary'][2]}\n"
+
+    # check if timesteps were provided
+    timesteps_provided = False
+    if 'timesteps' in data.keys():
+        timesteps_provided = True
+        timesteps = data['timesteps']
+
+    # find number of atoms and check consistency
+    nbp   = len(datalists[0][0])
+    nsnap = len(datalists[0])
+    for datalist in datalists:
+        if len(datalist) != nsnap:
+            raise ValueError(f'Inconsistent number of snapshots')
+        for snap in datalist:
+            if len(snap) != nbp:
+                raise ValueError(f'Inconsistent number of atoms')
+    
+
+    # configure mode
+    if append:
+        mode = 'a'
+    else:
+        mode = 'w'
+
+    with open(outfn,mode) as f:
+        for snap in range(nsnap):
+            # write header
+            f.write('ITEM: TIMESTEP\n')
+            if timesteps_provided:
+                f.write(f'{timesteps[snap]}\n')  
+            else:
+                f.write(f'0\n')  
+            f.write(f'ITEM: NUMBER OF ATOMS\n')
+            f.write(f'{nbp}\n')
+            f.write(boundarystr)
+            f.write(f"{data['simulation_box'][0,0]} {data['simulation_box'][0,1]}\n")
+            f.write(f"{data['simulation_box'][1,0]} {data['simulation_box'][1,1]}\n")
+            f.write(f"{data['simulation_box'][2,0]} {data['simulation_box'][2,1]}\n")
+            f.write(f"ITEM: ATOMS {' '.join(data['args'])}\n")
+
+            for iatom in range(nbp):
+                line = ''
+                for iarg in range(len(datalists)):
+                    line += f'{datalists[iarg][snap][iatom]} '
+                line = line[:-1] + '\n'
+                f.write(line)
+                    
+
 
 
 # if __name__ == "__main__":

@@ -3,6 +3,8 @@
 import os,sys
 from typing import List
 
+
+
 try:
     import numpy as np
 except ModuleNotFoundError:
@@ -89,7 +91,7 @@ def read_xyz_atomtypes(filename: str) -> List:
             line = f.readline()
     return types
     
-def write_xyz(outfn: str,data: dict,add_extension=True) -> None:
+def write_xyz(outfn: str,data: dict,add_extension=True,append=False) -> None:
     """
     Writes configuration to xyz file
     
@@ -104,11 +106,24 @@ def write_xyz(outfn: str,data: dict,add_extension=True) -> None:
     
     pos   = data['pos']
     types = data['types']
+    
+    if 'timesteps' in data.keys() and len(data['timesteps']) == len(data['pos']):
+        timesteps_provided = True
+    else:
+        timesteps_provided = False
+
     nbp   = len(pos[0])
-    with open(outfn,'w') as f:
+    if append:
+        mode = 'a'
+    else:
+        mode = 'w'
+    with open(outfn,mode) as f:
         for s,snap in enumerate(pos):
             f.write('%d\n'%nbp)
-            f.write('Atoms. Timestep: %d\n'%(s))
+            if timesteps_provided:
+                f.write('Atoms. Timestep: %d\n'%(data['timesteps'][s]))
+            else:
+                f.write('Atoms. Timestep: %d\n'%(s))
             for i in range(nbp):
                 f.write('%s %.4f %.4f %.4f\n'%(types[i],snap[i,0],snap[i,1],snap[i,2]))
     
